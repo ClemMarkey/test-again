@@ -17,7 +17,7 @@ jobs:
   - job: Use_Dev
     condition : and(succeeded(), eq(variables.isDev, 'true'))
     variables: 
-      - group : Dev Pipeline Variables 
+      - group : React Variables 
     steps:
         - task: GitVersion@5
           inputs:
