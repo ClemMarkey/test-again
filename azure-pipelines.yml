@@ -1,0 +1,57 @@
+trigger:
+  branches:
+    include:
+    - master
+    - develop
+    - release/*
+
+pool:
+  name: 'default'
+
+variables:
+  isDev:  $[eq(variables['Build.SourceBranch'], 'refs/heads/develop')]
+  isTest: $[contains(variables['Build.SourceBranch'], 'refs/heads/release/')]
+  isMain: $[eq(variables['Build.SourceBranch'], 'refs/heads/master')]
+
+jobs:
+  - job: Use_Dev
+    condition : and(succeeded(), eq(variables.isDev, 'true'))
+    variables: 
+      - group : Dev Pipeline Variables 
+    steps:
+        - task: GitVersion@5
+          inputs:
+            runtime: 'core'
+
+        - task: NodeTool@0
+          displayName: 'Use Node 14.x'
+          inputs:
+            versionSpec: 14.x
+
+        - task: Npm@1
+          displayName: 'Install Client package from sourcedirectory'
+          inputs:
+           verbose: false
+           command: 'install'
+
+        - task: Npm@1
+          displayName: 'Build React App'
+          inputs:
+            command: custom
+            verbose: false
+            customCommand: 'run-script build'
+
+
+        - task: OctopusPack@4
+          inputs:
+            PackageId: 'CI_APV_Front'
+            PackageFormat: 'NuPkg'
+            PackageVersion: '$(Build.BuildNumber)'
+            SourcePath: '.\build'
+            OutputPath: '$(ArtifactPath)'
+          
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(ArtifactPath)\CI_APV_Front.$(Build.BuildNumber).nupkg'
+            ArtifactName: 'APV_Front-Artifact'
+            publishLocation: 'Container'
